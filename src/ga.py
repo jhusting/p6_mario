@@ -31,22 +31,24 @@ def is_valid(genome, x, y, tile):
     if tile == '-' or tile == 'o' or tile == 'B' or tile == 'M' or tile == '?':
         return True
     elif tile == 'T':
-        if y < 15:
+        if y < 16:
             if genome[y+1][x] == '|':
                 return True 
         return False
     elif tile == '|':
-        if y < 14:
-            if genome[y+1][x] == '|':
+        if genome[y][x+1] == '-':
+            if y < 14:
+                if genome[y+1][x] == '|':
+                    return True
+            elif y == 14:
                 return True
-        elif y == 14:
-            return True
         return False
     elif tile == 'X':
-        if y < 16 and x > 1:
-            for i in range(-1,2):
-                if genome[y+1][x+i] == 'X':
-                    return True
+        if genome[y][x-1] != '|':
+            if y < 15 and x > 1:
+                for i in range(-1,2):
+                    if genome[y+1][x+i] == 'X':
+                        return True
         return False
 
     return True
@@ -97,12 +99,12 @@ class Individual_Grid(object):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
 
         left = 1
-        right = width - 1
-        for y in range(height-1):
+        right = width - 2
+        for y in range(height-2, 0, -1):
             for x in range(left, right):
                 if random.random() < .15:
                     #available_blocks = {'-': .3, 'X': .6, '?': .2, 'M': .2, 'B': .2, 'o': .1, '|': .4, 'E': .05, 'T': .8}
-                    available_blocks = {'E': .05, 'o': .1, '?': .2, 'M': .2, 'B': .2, '-': .3, '|': .4, 'X': .7, 'T': 1.0}
+                    available_blocks = {'|': 1.0, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
                     for block in available_blocks:
                         if not is_valid(genome, x, y, block):
                             available_blocks[block] = 0
@@ -168,7 +170,7 @@ class Individual_Grid(object):
         #g = [random.choices(options, k=width) for row in range(height)]
         g = [["-" for col in range(width)] for row in range(height)]
         left = 1
-        right = width - 1
+        right = width - 2
 
         g[15][:] = ["X"] * width
         g[14][0] = "m"
@@ -176,9 +178,9 @@ class Individual_Grid(object):
         g[8:14][-1] = ["f"] * 6
         g[14:16][-1] = ["X", "X"]
 
-        for y in range(8, height - 1):
+        for y in range(height - 2, 8, -1):
             for x in range(left, right):
-                available_blocks = {'E': .05, 'o': .1, '?': .2, 'M': .2, 'B': .2, '-': .3, '|': .4, 'X': .7, 'T': 1.0}
+                available_blocks = {'|': 1.0, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
                 for block in available_blocks:
                     if not is_valid(g, x, y, block):
                         available_blocks[block] = 0
@@ -190,11 +192,11 @@ class Individual_Grid(object):
                 else:
                     g[y][x] = '-'
 
-        g[15][:] = ["X"] * width
+        """g[15][:] = ["X"] * width
         g[14][0] = "m"
         g[7][-1] = "v"
         g[8:14][-1] = ["f"] * 6
-        g[14:16][-1] = ["X", "X"]
+        g[14:16][-1] = ["X", "X"]"""
 
         return cls(g)
 
@@ -418,13 +420,13 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-Individual = Individual_DE
+Individual = Individual_Grid
 
 
 def generate_successors(population):
     results = []
 
-    #population = sorted(population, key=lambda l: l.fitness(), reverse=True)
+    population = sorted(population, key=lambda l: l.fitness(), reverse=True)
     #population.sort(key=Individual.fitness, reverse=True)
 
     # STUDENT Design and implement this
