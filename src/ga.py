@@ -27,6 +27,29 @@ options = [
 ]
 
 # The level as a grid of tiles
+def is_valid(genome, x, y, tile):
+    if tile == '-' or tile == 'o' or tile == 'B' or tile == 'M' or tile == '?':
+        return True
+    elif tile == 'T':
+        if y < 14:
+            if genome[y+1][x] == '|':
+                return True 
+        return False
+    elif tile == '|':
+        if y < 14:
+            if genome[y+1][x] == '|':
+                return True
+        elif y == 14:
+            return True
+        return False
+    elif tile == 'X':
+        if y < 15 and x > 1:
+            for i in range(-1,2):
+                if genome[y+1][x+i] == 'X':
+                    return True
+        return False
+
+    return True
 
 
 class Individual_Grid(object):
@@ -70,9 +93,18 @@ class Individual_Grid(object):
 
         left = 1
         right = width - 1
-        for y in range(height):
+        for y in range(height-1):
             for x in range(left, right):
-                pass
+                if random.random() < .05:
+                    available_blocks = ['-', 'X', '?', 'M', 'B', 'o', '|', 'E']
+
+                    for block in available_blocks:
+                        if not is_valid(genome, x, y, block):
+                            available_blocks.remove(block)
+                    
+                    genome[y][x] = available_blocks[random.randint(0, len(available_blocks) - 1)]
+
+
         return genome
 
     # Create zero or more children from self and other
@@ -82,12 +114,23 @@ class Individual_Grid(object):
         # do crossover with other
         left = 1
         right = width - 1
-        for y in range(height):
+        point = random.randint(0, width-1)
+        """for y in range(height):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pass
+                if random.random() < 0.5:
+                    new_genome[y][x] = self.genome[y][x]
+                else:
+                    new_genome[y][x] = other.genome[y][x]"""
+        for x in range(left, right):
+            for y in range(height):
+                if x < point:
+                    new_genome[y][x] = self.genome[y][x]
+                else:
+                    new_genome[y][x] = other.genome[y][x]
         # do mutation; note we're returning a one-element tuple here
+        self.mutate(new_genome)
         return (Individual_Grid(new_genome),)
 
     # Turn the genome into a level string (easy for this genome)
@@ -112,12 +155,32 @@ class Individual_Grid(object):
     def random_individual(cls):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
         # STUDENT also consider weighting the different tile types so it's not uniformly random
-        g = [random.choices(options, k=width) for row in range(height)]
+        #g = [random.choices(options, k=width) for row in range(height)]
+        g = [["-" for col in range(width)] for row in range(height)]
+        left = 1
+        right = width - 1
+
         g[15][:] = ["X"] * width
         g[14][0] = "m"
         g[7][-1] = "v"
         g[8:14][-1] = ["f"] * 6
         g[14:16][-1] = ["X", "X"]
+
+        for y in range(8, height - 1):
+            for x in range(left, right):
+                available_blocks = ['-', '-', '-', '-', '-', 'X', '?', 'M', 'B', 'o', '|', 'E']         
+                for block in available_blocks:
+                    if not is_valid(g, x, y, block):
+                        available_blocks.remove(block)
+                    
+                g[y][x] = available_blocks[random.randint(0, len(available_blocks) - 1)]
+
+        g[15][:] = ["X"] * width
+        g[14][0] = "m"
+        g[7][-1] = "v"
+        g[8:14][-1] = ["f"] * 6
+        g[14:16][-1] = ["X", "X"]
+
         return cls(g)
 
 
@@ -345,10 +408,18 @@ Individual = Individual_Grid
 
 def generate_successors(population):
     results = []
+
+    population = sorted(population, key=lambda l: l.fitness(), reverse=True)
+    #population.sort(key=Individual.fitness, reverse=True)
+
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
-    return results
+    for i in range(0, int(len(population)/8)):
+        for j in range(0, 8):
+            print("Fitness: ", population[i].fitness())
+            results.append(population[i].generate_children(population[random.randint(0, int(len(population)/8))])[0])
 
+    return results
 
 def ga():
     # STUDENT Feel free to play with this parameter
