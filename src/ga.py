@@ -26,7 +26,8 @@ options = [
     #"m"  # mario's start position, do not generate
 ]
 
-# The level as a grid of tiles
+
+#is_valid takes a genome, x and y coordinate, and a tile type, and returns whether or not that tile can be placed at that coord
 def is_valid(genome, x, y, tile):
     if tile == '-' or tile == 'o' or tile == 'B' or tile == 'M' or tile == '?':
         return True
@@ -53,12 +54,13 @@ def is_valid(genome, x, y, tile):
 
     return True
 
+# pick returns the first item where val is less than that item's val in the dictionary l
 def pick(val, l):
     for item in l:
         if val <= l[item]:
             return item
 
-
+# The level as a grid of tiles
 class Individual_Grid(object):
     __slots__ = ["genome", "_fitness"]
 
@@ -99,14 +101,15 @@ class Individual_Grid(object):
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
 
         left = 1
-        right = width - 2
+        right = width - 10
         for y in range(height-2, 0, -1):
             for x in range(left, right):
                 if random.random() < .15:
-                    #available_blocks = {'-': .3, 'X': .6, '?': .2, 'M': .2, 'B': .2, 'o': .1, '|': .4, 'E': .05, 'T': .8}
-                    available_blocks = {'|': 1.0, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
+                    #this is the percentage change to generate each block type
+                    available_blocks = {'|': .4, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
                     for block in available_blocks:
                         if not is_valid(genome, x, y, block):
+                            #if the block type isn't valid, set it's chance to spawn to 0%
                             available_blocks[block] = 0
                     
                     item = pick(random.random(), available_blocks)
@@ -127,14 +130,6 @@ class Individual_Grid(object):
         left = 1
         right = width - 1
         point = random.randint(0, width-1)
-        """for y in range(height):
-            for x in range(left, right):
-                # STUDENT Which one should you take?  Self, or other?  Why?
-                # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                if random.random() < 0.5:
-                    new_genome[y][x] = self.genome[y][x]
-                else:
-                    new_genome[y][x] = other.genome[y][x]"""
         for x in range(left, right):
             for y in range(height):
                 if x < point:
@@ -144,6 +139,7 @@ class Individual_Grid(object):
         # do mutation; note we're returning a one-element tuple here
         self.mutate(new_genome)
         return (Individual_Grid(new_genome),)
+        #return (self.random_individual(), )
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -170,7 +166,7 @@ class Individual_Grid(object):
         #g = [random.choices(options, k=width) for row in range(height)]
         g = [["-" for col in range(width)] for row in range(height)]
         left = 1
-        right = width - 2
+        right = width - 10
 
         g[15][:] = ["X"] * width
         g[14][0] = "m"
@@ -180,7 +176,7 @@ class Individual_Grid(object):
 
         for y in range(height - 2, 8, -1):
             for x in range(left, right):
-                available_blocks = {'|': 1.0, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
+                available_blocks = {'|': .2, 'T': 1.0, 'E': .05, 'o': .1, '?': .15, 'M': .2, 'B': .25, 'X': .5, '-':1.0}
                 for block in available_blocks:
                     if not is_valid(g, x, y, block):
                         available_blocks[block] = 0
@@ -192,11 +188,13 @@ class Individual_Grid(object):
                 else:
                     g[y][x] = '-'
 
-        """g[15][:] = ["X"] * width
+        g[15][:] = ["X"] * width
         g[14][0] = "m"
         g[7][-1] = "v"
-        g[8:14][-1] = ["f"] * 6
-        g[14:16][-1] = ["X", "X"]"""
+        for col in range(8, 14):
+            g[col][-1] = "f"
+        for col in range(14, 16):
+            g[col][-1] = "X"
 
         return cls(g)
 
@@ -248,6 +246,8 @@ class Individual_DE(object):
         penalties = 0
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
         if len(list(filter(lambda de: de[1] == "6_stairs", self.genome))) > 5:
+            penalties -= 2
+        if len(list(filter(lambda de: de[1] == "2_enemy", self.genome))) < 5:
             penalties -= 2
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
@@ -341,8 +341,11 @@ class Individual_DE(object):
 
     def generate_children(self, other):
         # STUDENT How does this work?  Explain it in your writeup.
-        pa = random.randint(0, len(self.genome) - 1)
-        pb = random.randint(0, len(other.genome) - 1)
+        pa = random.randint(0, len(self.genome))
+        if (len(other.genome) > 1):
+            pb = random.randint(0, len(other.genome) - 1)
+        else:
+            pb = 0
         a_part = self.genome[:pa] if len(self.genome) > 0 else []
         b_part = other.genome[pb:] if len(other.genome) > 0 else []
         ga = a_part + b_part
@@ -406,7 +409,7 @@ class Individual_DE(object):
     @classmethod
     def random_individual(_cls):
         # STUDENT Maybe enhance this
-        elt_count = random.randint(8, 128)
+        elt_count = random.randint(25, 128)
         g = [random.choice([
             (random.randint(1, width - 2), "0_hole", random.randint(1, 8)),
             (random.randint(1, width - 2), "1_platform", random.randint(1, 8), random.randint(0, height - 1), random.choice(["?", "X", "B"])),
@@ -420,7 +423,7 @@ class Individual_DE(object):
         return Individual_DE(g)
 
 
-Individual = Individual_Grid
+Individual = Individual_DE
 
 
 def generate_successors(population):
@@ -432,9 +435,11 @@ def generate_successors(population):
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
     for i in range(0, int(len(population)/8)):
-        for j in range(0, 8):
+        for j in range(0, 4):
             print("Fitness: ", population[i].fitness())
-            results.append(population[i].generate_children(population[random.randint(0, int(len(population)/8))])[0])
+            children = population[i].generate_children(population[random.randint(0, int(len(population)/8))])
+            results.append(children[0])
+            results.append(children[1])
 
     return results
 
