@@ -436,12 +436,25 @@ def generate_successors(population):
 
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+
+    
+    # Elitist Selection
     for i in range(0, int(len(population)/8)):
         for j in range(0, 4):
             print("Fitness: ", population[i].fitness())
             children = population[i].generate_children(population[random.randint(0, int(len(population)/8))])
             results.append(children[0])
             results.append(children[1])
+    """
+    # Random Selection
+    for i in range(0, int(len(population)/2)):
+        print("Fitness: ", population[i].fitness())
+        ra = random.randint(0, len(population) - 1)
+        rb = random.randint(0, len(population) - 1)
+        children = population[ra].generate_children(population[rb])
+        results.append(children[0])
+        results.append(children[1])
+    """
 
     return results
 
