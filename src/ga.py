@@ -124,7 +124,8 @@ class Individual_Grid(object):
 
     # Create zero or more children from self and other
     def generate_children(self, other):
-        new_genome = copy.deepcopy(self.genome)
+        new_genome1 = copy.deepcopy(self.genome)
+        new_genome2 = copy.deepcopy(self.genome)
         # Leaving first and last columns alone...
         # do crossover with other
         left = 1
@@ -133,12 +134,15 @@ class Individual_Grid(object):
         for x in range(left, right):
             for y in range(height):
                 if x < point:
-                    new_genome[y][x] = self.genome[y][x]
+                    new_genome1[y][x] = self.genome[y][x]
+                    new_genome2[y][x] = other.genome[y][x]
                 else:
-                    new_genome[y][x] = other.genome[y][x]
+                    new_genome1[y][x] = other.genome[y][x]
+                    new_genome2[y][x] = self.genome[y][x]
         # do mutation; note we're returning a one-element tuple here
-        self.mutate(new_genome)
-        return (Individual_Grid(new_genome),)
+        self.mutate(new_genome1)
+        self.mutate(new_genome2)
+        return (Individual_Grid(new_genome1), Individual_Grid(new_genome2))
         #return (self.random_individual(), )
 
     # Turn the genome into a level string (easy for this genome)
@@ -241,7 +245,7 @@ class Individual_DE(object):
             pathPercentage=0.5,
             emptyPercentage=0.6,
             linearity=-0.5,
-            solvability=2.0
+            solvability=3.5
         )
         penalties = 0
         # STUDENT For example, too many stairs are unaesthetic.  Let's penalize that
@@ -254,6 +258,8 @@ class Individual_DE(object):
         # STUDENT If you go for the FI-2POP extra credit, you can put constraint calculation in here too and cache it in a new entry in __slots__.
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients)) + penalties/3
+
+        self._fitness += len(self.genome) / 400
         return self
 
     def fitness(self):
@@ -303,7 +309,7 @@ class Individual_DE(object):
                 if choice < 0.5:
                     x = offset_by_upto(x, width / 8, min=1, max=width - 2)
                 else:
-                    h = offset_by_upto(h, 2, min=2, max=height - 4)
+                    h = offset_by_upto(h, 2, min=2, max=height - 10)
                 new_de = (x, de_type, h)
             elif de_type == "0_hole":
                 w = de[2]
@@ -420,12 +426,12 @@ class Individual_DE(object):
             (random.randint(1, width - 2), "4_block", random.randint(0, height - 1), random.choice([True, False])),
             (random.randint(1, width - 2), "5_qblock", random.randint(0, height - 1), random.choice([True, False])),
             (random.randint(1, width - 2), "6_stairs", random.randint(1, height - 4), random.choice([-1, 1])),
-            (random.randint(1, width - 2), "7_pipe", random.randint(2, height - 6))
+            (random.randint(1, width - 2), "7_pipe", random.randint(2, height - 10))
         ]) for i in range(elt_count)]
         return Individual_DE(g)
 
 
-Individual = Individual_DE
+Individual = Individual_Grid
 
 
 def generate_successors(population):
